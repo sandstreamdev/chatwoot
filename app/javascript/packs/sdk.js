@@ -26,10 +26,11 @@ const computeHashForUserData = (...args) => md5(getUserString(...args));
 export const hasUserKeys = user =>
   REQUIRED_USER_KEYS.reduce((acc, key) => acc || !!user[key], false);
 
-const runSDK = ({ baseUrl, websiteToken }) => {
+const runSDK = ({ baseUrl, cookieOptions = {}, websiteToken }) => {
   const chatwootSettings = window.chatwootSettings || {};
   window.$chatwoot = {
     baseUrl,
+    cookieOptions,
     hasLoaded: false,
     hideMessageBubble: chatwootSettings.hideMessageBubble || false,
     isOpen: false,
@@ -68,6 +69,7 @@ const runSDK = ({ baseUrl, websiteToken }) => {
       Cookies.set(userCookieName, hashToBeStored, {
         expires: 365,
         sameSite: 'Lax',
+        ...cookieOptions,
       });
     },
 
