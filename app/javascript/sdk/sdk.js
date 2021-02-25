@@ -14,6 +14,10 @@ export const SDK_CSS = `.woot-widget-holder {
   width: 100% !important;
 }
 
+.chatwoot_live_chat_widget--hidden {
+  display: none;
+}
+
 .woot-widget-holder.has-unread-view {
   border-radius: 0 !important;
   bottom: 94px;

@@ -32,7 +32,7 @@ export const IFrameHelper = {
     iframe.src = widgetUrl;
 
     iframe.id = 'chatwoot_live_chat_widget';
-    iframe.style.visibility = 'hidden';
+    iframe.classList.add('chatwoot_live_chat_widget--hidden');
 
     let holderClassName = `woot-widget-holder woot--hide woot-elements--${window.$chatwoot.position}`;
     if (window.$chatwoot.hideMessageBubble) {
@@ -172,11 +172,11 @@ export const IFrameHelper = {
     IFrameHelper.sendMessage('push-event', { eventName });
   },
   onLoad: ({ widgetColor }) => {
+    loadCSS();
+
     const iframe = IFrameHelper.getAppFrame();
-    iframe.style.visibility = '';
     iframe.setAttribute('id', `chatwoot_live_chat_widget`);
 
-    loadCSS();
     createBubbleHolder();
 
     if (!window.$chatwoot.hideMessageBubble) {
@@ -198,6 +198,8 @@ export const IFrameHelper = {
       bubbleHolder.appendChild(createNotificationBubble());
       onClickChatBubble();
     }
+
+    iframe.classList.remove('chatwoot_live_chat_widget--hidden');
   },
   setCurrentUrl: () => {
     IFrameHelper.sendMessage('set-current-url', {
