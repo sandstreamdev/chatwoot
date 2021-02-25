@@ -1,4 +1,4 @@
-import { getBubbleView, isExpandedView } from '../bubbleHelpers';
+import { getBubbleView, isExpandedView } from '../IFrameHelper';
 
 describe('#getBubbleView', () => {
   it('returns correct view', () => {

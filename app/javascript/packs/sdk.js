@@ -1,6 +1,5 @@
 import Cookies from 'js-cookie';
-import { IFrameHelper } from '../sdk/IFrameHelper';
-import { getBubbleView } from '../sdk/bubbleHelpers';
+import { getBubbleView, IFrameHelper } from '../sdk/IFrameHelper';
 import md5 from 'md5';
 
 const REQUIRED_USER_KEYS = ['avatar_url', 'email', 'name'];
