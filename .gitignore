@@ -63,3 +63,5 @@ test/cypress/videos/*
 
 /config/master.key
 /config/*.enc
+
+dist
