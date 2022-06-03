@@ -2,14 +2,14 @@
   <transition-group name="toast-fade" tag="div" class="ui-snackbar-container">
     <woot-snackbar
       v-for="snackMessage in snackMessages"
-      :key="snackMessage"
-      :message="snackMessage"
+      :key="snackMessage.key"
+      :message="snackMessage.message"
+      :action="snackMessage.action"
     />
   </transition-group>
 </template>
 
 <script>
-/* global bus */
 import WootSnackbar from './Snackbar';
 
 export default {
@@ -30,12 +30,22 @@ export default {
   },
 
   mounted() {
-    bus.$on('newToastMessage', message => {
-      this.snackMessages.push(message);
+    bus.$on('newToastMessage', this.onNewToastMessage);
+  },
+  beforeDestroy() {
+    bus.$off('newToastMessage', this.onNewToastMessage);
+  },
+  methods: {
+    onNewToastMessage(message, action) {
+      this.snackMessages.push({
+        key: new Date().getTime(),
+        message,
+        action,
+      });
       window.setTimeout(() => {
         this.snackMessages.splice(0, 1);
       }, this.duration);
-    });
+    },
   },
 };
 </script>

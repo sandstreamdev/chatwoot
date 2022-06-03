@@ -1,42 +1,86 @@
 <template>
   <div
     class="conversation"
-    :class="{ active: isActiveChat, 'unread-chat': hasUnread }"
+    :class="{
+      active: isActiveChat,
+      'unread-chat': hasUnread,
+      'has-inbox-name': showInboxName,
+      'conversation-selected': selected,
+    }"
+    @mouseenter="onCardHover"
+    @mouseleave="onCardLeave"
     @click="cardClick(chat)"
   >
-    <Thumbnail
-      v-if="!hideThumbnail"
+    <label v-if="hovered || selected" class="checkbox-wrapper">
+      <input
+        :value="selected"
+        :checked="selected"
+        class="checkbox"
+        type="checkbox"
+        @change="onSelectConversation($event.target.checked)"
+        @click.stop
+      />
+    </label>
+    <thumbnail
+      v-if="bulkActionCheck"
       :src="currentContact.thumbnail"
-      :badge="chatMetadata.channel"
+      :badge="inboxBadge"
       class="columns"
       :username="currentContact.name"
       :status="currentContact.availability_status"
       size="40px"
     />
     <div class="conversation--details columns">
+      <div class="conversation--metadata">
+        <inbox-name v-if="showInboxName" :inbox="inbox" />
+        <span
+          v-if="showAssignee && assignee.name"
+          class="label assignee-label text-truncate"
+        >
+          <fluent-icon icon="person" size="12" />
+          {{ assignee.name }}
+        </span>
+      </div>
       <h4 class="conversation--user">
         {{ currentContact.name }}
-        <span
-          v-if="!hideInboxName && isInboxNameVisible"
-          v-tooltip.bottom="inboxName(chat.inbox_id)"
-          class="label"
-        >
-          {{ inboxName(chat.inbox_id) }}
-        </span>
       </h4>
       <p v-if="lastMessageInChat" class="conversation--message">
-        <i v-if="messageByAgent" class="ion-ios-undo message-from-agent"></i>
+        <fluent-icon
+          v-if="isMessagePrivate"
+          size="16"
+          class="message--attachment-icon last-message-icon"
+          icon="lock-closed"
+        />
+        <fluent-icon
+          v-else-if="messageByAgent"
+          size="16"
+          class="message--attachment-icon last-message-icon"
+          icon="arrow-reply"
+        />
+        <fluent-icon
+          v-else-if="isMessageAnActivity"
+          size="16"
+          class="message--attachment-icon last-message-icon"
+          icon="info"
+        />
         <span v-if="lastMessageInChat.content">
           {{ parsedLastMessage }}
         </span>
-        <span v-else-if="!lastMessageInChat.attachments">{{ ` ` }}</span>
+        <span v-else-if="lastMessageInChat.attachments">
+          <fluent-icon
+            v-if="attachmentIcon"
+            size="16"
+            class="message--attachment-icon"
+            :icon="attachmentIcon"
+          />
+          {{ this.$t(`${attachmentMessageContent}`) }}
+        </span>
         <span v-else>
-          <i :class="`small-icon ${this.$t(`${attachmentIconKey}.ICON`)}`"></i>
-          {{ this.$t(`${attachmentIconKey}.CONTENT`) }}
+          {{ $t('CHAT_LIST.NO_CONTENT') }}
         </span>
       </p>
       <p v-else class="conversation--message">
-        <i class="ion-android-alert"></i>
+        <fluent-icon size="16" class="message--attachment-icon" icon="info" />
         <span>
           {{ this.$t(`CHAT_LIST.NO_MESSAGES`) }}
         </span>
@@ -54,19 +98,30 @@
 import { mapGetters } from 'vuex';
 import { MESSAGE_TYPE } from 'widget/helpers/constants';
 import messageFormatterMixin from 'shared/mixins/messageFormatterMixin';
-
 import Thumbnail from '../Thumbnail';
 import conversationMixin from '../../../mixins/conversations';
 import timeMixin from '../../../mixins/time';
 import router from '../../../routes';
 import { frontendURL, conversationUrl } from '../../../helper/URLHelper';
+import InboxName from '../InboxName';
+import inboxMixin from 'shared/mixins/inboxMixin';
+
+const ATTACHMENT_ICONS = {
+  image: 'image',
+  audio: 'headphones-sound-wave',
+  video: 'video',
+  file: 'document',
+  location: 'location',
+  fallback: 'link',
+};
 
 export default {
   components: {
+    InboxName,
     Thumbnail,
   },
 
-  mixins: [timeMixin, conversationMixin, messageFormatterMixin],
+  mixins: [inboxMixin, timeMixin, conversationMixin, messageFormatterMixin],
   props: {
     activeLabel: {
       type: String,
@@ -84,8 +139,32 @@ export default {
       type: Boolean,
       default: false,
     },
+    teamId: {
+      type: [String, Number],
+      default: 0,
+    },
+    foldersId: {
+      type: [String, Number],
+      default: 0,
+    },
+    showAssignee: {
+      type: Boolean,
+      default: false,
+    },
+    conversationType: {
+      type: String,
+      default: '',
+    },
+    selected: {
+      type: Boolean,
+      default: false,
+    },
   },
-
+  data() {
+    return {
+      hovered: false,
+    };
+  },
   computed: {
     ...mapGetters({
       currentChat: 'getSelectedChat',
@@ -94,9 +173,15 @@ export default {
       currentUser: 'getCurrentUser',
       accountId: 'getCurrentAccountId',
     }),
-
+    bulkActionCheck() {
+      return !this.hideThumbnail && !this.hovered && !this.selected;
+    },
     chatMetadata() {
-      return this.chat.meta;
+      return this.chat.meta || {};
+    },
+
+    assignee() {
+      return this.chatMetadata.assignee || {};
     },
 
     currentContact() {
@@ -105,10 +190,18 @@ export default {
       );
     },
 
-    attachmentIconKey() {
+    lastMessageFileType() {
       const lastMessage = this.lastMessageInChat;
       const [{ file_type: fileType } = {}] = lastMessage.attachments;
-      return `CHAT_LIST.ATTACHMENTS.${fileType}`;
+      return fileType;
+    },
+
+    attachmentIcon() {
+      return ATTACHMENT_ICONS[this.lastMessageFileType];
+    },
+
+    attachmentMessageContent() {
+      return `CHAT_LIST.ATTACHMENTS.${this.lastMessageFileType}.CONTENT`;
     },
 
     isActiveChat() {
@@ -137,11 +230,42 @@ export default {
       return messageType === MESSAGE_TYPE.OUTGOING;
     },
 
+    isMessageAnActivity() {
+      const lastMessage = this.lastMessageInChat;
+      const { message_type: messageType } = lastMessage;
+      return messageType === MESSAGE_TYPE.ACTIVITY;
+    },
+
+    isMessagePrivate() {
+      const lastMessage = this.lastMessageInChat;
+      const { private: isPrivate } = lastMessage;
+      return isPrivate;
+    },
+
     parsedLastMessage() {
-      return this.getPlainText(this.lastMessageInChat.content);
+      const { content_attributes: contentAttributes } = this.lastMessageInChat;
+      const { email: { subject } = {} } = contentAttributes || {};
+      return this.getPlainText(subject || this.lastMessageInChat.content);
+    },
+
+    inbox() {
+      const { inbox_id: inboxId } = this.chat;
+      const stateInbox = this.$store.getters['inboxes/getInbox'](inboxId);
+      return stateInbox;
+    },
+
+    showInboxName() {
+      return (
+        !this.hideInboxName &&
+        this.isInboxNameVisible &&
+        this.inboxesList.length > 1
+      );
+    },
+    inboxName() {
+      const stateInbox = this.inbox;
+      return stateInbox.name || '';
     },
   },
-
   methods: {
     cardClick(chat) {
       const { activeInbox } = this;
@@ -150,13 +274,105 @@ export default {
         activeInbox,
         id: chat.id,
         label: this.activeLabel,
+        teamId: this.teamId,
+        foldersId: this.foldersId,
+        conversationType: this.conversationType,
       });
+      if (this.isActiveChat) {
+        return;
+      }
       router.push({ path: frontendURL(path) });
     },
-    inboxName(inboxId) {
-      const stateInbox = this.$store.getters['inboxes/getInbox'](inboxId);
-      return stateInbox.name || '';
+    onCardHover() {
+      this.hovered = !this.hideThumbnail;
+    },
+    onCardLeave() {
+      this.hovered = false;
+    },
+    onSelectConversation(checked) {
+      const action = checked ? 'select-conversation' : 'de-select-conversation';
+      this.$emit(action, this.chat.id, this.inbox.id);
     },
   },
 };
 </script>
+<style lang="scss" scoped>
+.conversation {
+  align-items: center;
+
+  &:hover {
+    background: var(--color-background-light);
+  }
+}
+
+.conversation-selected {
+  background: var(--color-background-light);
+}
+
+.has-inbox-name {
+  &::v-deep .user-thumbnail-box {
+    margin-top: var(--space-normal);
+    align-items: flex-start;
+  }
+  .conversation--meta {
+    margin-top: var(--space-normal);
+  }
+}
+
+.conversation--details {
+  .conversation--user {
+    padding-top: var(--space-micro);
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    width: 60%;
+  }
+}
+
+.last-message-icon {
+  color: var(--s-600);
+}
+
+.conversation--metadata {
+  display: flex;
+  justify-content: space-between;
+  padding-right: var(--space-normal);
+
+  .label {
+    background: none;
+    color: var(--s-500);
+    font-size: var(--font-size-mini);
+    font-weight: var(--font-weight-medium);
+    line-height: var(--space-slab);
+    padding: var(--space-micro) 0 var(--space-micro) 0;
+  }
+
+  .assignee-label {
+    display: inline-flex;
+    max-width: 50%;
+  }
+}
+
+.message--attachment-icon {
+  margin-top: var(--space-minus-micro);
+  vertical-align: middle;
+}
+.checkbox-wrapper {
+  height: 40px;
+  width: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 100%;
+  margin-top: var(--space-normal);
+  cursor: pointer;
+  &:hover {
+    background-color: var(--w-100);
+  }
+
+  input[type='checkbox'] {
+    margin: var(--space-zero);
+    cursor: pointer;
+  }
+}
+</style>

@@ -1,4 +1,9 @@
-import { formatDate, formatUnixDate } from '../DateHelper';
+import {
+  formatDate,
+  formatUnixDate,
+  formatDigitToString,
+  isTimeAfter,
+} from '../DateHelper';
 
 describe('#DateHelper', () => {
   it('should format unix date correctly without dateFormat', () => {
@@ -38,5 +43,22 @@ describe('#DateHelper', () => {
         yesterdayText: 'Yesterday',
       })
     ).toEqual('Yesterday');
+  });
+});
+describe('#formatDigitToString', () => {
+  it('returns date compatabile string from number is less than 9', () => {
+    expect(formatDigitToString(8)).toEqual('08');
+  });
+  it('returns date compatabile string from number is greater than 9', () => {
+    expect(formatDigitToString(11)).toEqual('11');
+  });
+});
+
+describe('#isTimeAfter', () => {
+  it('return correct values', () => {
+    expect(isTimeAfter(5, 30, 9, 30)).toEqual(false);
+    expect(isTimeAfter(9, 30, 9, 30)).toEqual(true);
+    expect(isTimeAfter(9, 29, 9, 30)).toEqual(false);
+    expect(isTimeAfter(11, 59, 12, 0)).toEqual(false);
   });
 });

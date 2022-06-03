@@ -13,7 +13,7 @@
       "TITLE": "Verwalten Sie Agenten in Ihrem Team",
       "DESC": "Sie können Agenten zu / in Ihrem Team hinzufügen / entfernen.",
       "NAME": "Name",
-      "EMAIL": "E-Mail",
+      "EMAIL": "EMAIL",
       "STATUS": "Status",
       "ACTIONS": "Aktionen",
       "VERIFIED": "Verifiziert",
@@ -22,7 +22,7 @@
     "ADD": {
       "TITLE": "Fügen Sie Ihrem Team einen Agenten hinzu",
       "DESC": "Sie können Personen hinzufügen, die die Unterstützung für Ihre Posteingänge übernehmen können.",
-      "CANCEL_BUTTON_TEXT": "Stornieren",
+      "CANCEL_BUTTON_TEXT": "Abbrechen",
       "FORM": {
         "NAME": {
           "LABEL": "Agentenname",
@@ -90,7 +90,24 @@
       }
     },
     "SEARCH": {
-      "NO_RESULTS": "Keine Agenten gefunden."
+      "NO_RESULTS": "Keine Ergebnisse gefunden."
+    },
+    "MULTI_SELECTOR": {
+      "PLACEHOLDER": "Keine",
+      "TITLE": {
+        "AGENT": "Agent auswählen",
+        "TEAM": "Team auswählen"
+      },
+      "SEARCH": {
+        "NO_RESULTS": {
+          "AGENT": "Keine Agenten gefunden",
+          "TEAM": "Keine Teams gefunden"
+        },
+        "PLACEHOLDER": {
+          "AGENT": "Agenten suchen",
+          "TEAM": "Teams suchen"
+        }
+      }
     }
   }
 }

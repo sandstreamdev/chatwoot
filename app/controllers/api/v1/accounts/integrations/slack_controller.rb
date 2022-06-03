@@ -1,4 +1,5 @@
 class Api::V1::Accounts::Integrations::SlackController < Api::V1::Accounts::BaseController
+  before_action :check_admin_authorization?
   before_action :fetch_hook, only: [:update, :destroy]
 
   def create
@@ -19,7 +20,7 @@ class Api::V1::Accounts::Integrations::SlackController < Api::V1::Accounts::Base
   end
 
   def destroy
-    @hook.destroy
+    @hook.destroy!
 
     head :ok
   end

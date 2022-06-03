@@ -2,6 +2,29 @@
   "INTEGRATION_SETTINGS": {
     "HEADER": "Integracje",
     "WEBHOOK": {
+      "SUBSCRIBED_EVENTS": "Subscribed Events",
+      "FORM": {
+        "CANCEL": "Anuluj",
+        "DESC": "Wydarzenia Webhook dostarczają informacji o tym, co dzieje się na Twoim koncie Chatwoot. Wprowadź poprawny adres URL, aby skonfigurować wywołanie zwrotne.",
+        "SUBSCRIPTIONS": {
+          "LABEL": "Events",
+          "EVENTS": {
+            "CONVERSATION_CREATED": "Conversation Created",
+            "CONVERSATION_STATUS_CHANGED": "Conversation Status Changed",
+            "CONVERSATION_UPDATED": "Conversation Updated",
+            "MESSAGE_CREATED": "Message created",
+            "MESSAGE_UPDATED": "Message updated",
+            "WEBWIDGET_TRIGGERED": "Live chat widget opened by the user"
+          }
+        },
+        "END_POINT": {
+          "LABEL": "URL webhooka",
+          "PLACEHOLDER": "Przykład: https://example/api/webhook",
+          "ERROR": "Wprowadź poprawny adres URL"
+        },
+        "EDIT_SUBMIT": "Update webhook",
+        "ADD_SUBMIT": "Create webhook"
+      },
       "TITLE": "Webhook",
       "CONFIGURE": "Skonfiguruj",
       "HEADER": "Ustawienia webhooka",
@@ -17,20 +40,19 @@
           "Akcje"
         ]
       },
+      "EDIT": {
+        "BUTTON_TEXT": "Edytuj",
+        "TITLE": "Edit webhook",
+        "API": {
+          "SUCCESS_MESSAGE": "Webhook configuration updated successfully",
+          "ERROR_MESSAGE": "Nie można połączyć się z Woot Server, spróbuj ponownie później"
+        }
+      },
       "ADD": {
         "CANCEL": "Anuluj",
         "TITLE": "Dodaj nowy webhook",
-        "DESC": "Wydarzenia Webhook dostarczają informacji o tym, co dzieje się na Twoim koncie Chatwoot. Wprowadź poprawny adres URL, aby skonfigurować wywołanie zwrotne.",
-        "FORM": {
-          "END_POINT": {
-            "LABEL": "URL webhooka",
-            "PLACEHOLDER": "Przykład: https://example/api/webhook",
-            "ERROR": "Wprowadź poprawny adres URL"
-          },
-          "SUBMIT": "Utwórz webhook"
-        },
         "API": {
-          "SUCCESS_MESSAGE": "Webhook został dodany",
+          "SUCCESS_MESSAGE": "Webhook configuration added successfully",
           "ERROR_MESSAGE": "Nie można połączyć się z Woot Server, spróbuj ponownie później"
         }
       },
@@ -42,10 +64,16 @@
         },
         "CONFIRM": {
           "TITLE": "Potwierdź usunięcie",
-          "MESSAGE": "Czy na pewno chcesz usunąć ",
+          "MESSAGE": "Are you sure to delete the webhook? (%{webhookURL})",
           "YES": "Tak, usuń ",
           "NO": "No, Keep it"
         }
+      }
+    },
+    "SLACK": {
+      "HELP_TEXT": {
+        "TITLE": "Using Slack Integration",
+        "BODY": "<br/><p>Chatwoot will now sync all the incoming conversations into the <b><i>customer-conversations</i></b> channel inside your slack workplace.</p><p>Replying to a conversation thread in <b><i>customer-conversations</i></b> slack channel will create a response back to the customer through chatwoot.</p><p>Start the replies with <b><i>note:</i></b> to create private notes instead of replies.</p><p>If the replier on slack has an agent profile in chatwoot under the same email, the replies will be associated accordingly.</p><p>When the replier doesn't have an associated agent profile, the replies will be made from the bot profile.</p>"
       }
     },
     "DELETE": {
@@ -55,7 +83,7 @@
       }
     },
     "CONNECT": {
-      "BUTTON_TEXT": "Connect"
+      "BUTTON_TEXT": "Połącz"
     }
   }
 }

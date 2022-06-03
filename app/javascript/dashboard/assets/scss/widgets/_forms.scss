@@ -33,3 +33,14 @@ input {
 .help-text {
   font-weight: $font-weight-normal;
 }
+
+.input-group.small {
+  input {
+    font-size: var(--font-size-small);
+    height: var(--space-large);
+  }
+
+  .error {
+    border-color: var(--r-400);
+  }
+}

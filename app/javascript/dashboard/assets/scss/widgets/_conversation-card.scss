@@ -14,7 +14,6 @@
   @include flex;
   @include flex-shrink;
   @include padding(0 0 0 $space-normal);
-  align-items: center;
   border-bottom: 1px solid transparent;
   border-left: $space-micro solid transparent;
   border-top: 1px solid transparent;
@@ -86,16 +85,6 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     width: 27rem;
-
-    .small-icon {
-      font-size: $font-size-mini;
-      vertical-align: top;
-    }
-
-    .message-from-agent {
-      color: $color-gray;
-      font-size: $font-size-mini;
-    }
   }
 
   .conversation--meta {
@@ -150,7 +139,10 @@
     padding-left: 0;
 
     .conversation--details {
+      border-radius: var(--border-radius-small);
       margin-left: 0;
+      padding-left: var(--space-two);
+      padding-right: var(--space-small);
     }
   }
 }

@@ -1,4 +1,5 @@
-import authAPI from '../../../api/auth';
+import { MESSAGE_TYPE } from 'shared/constants/messages';
+import { applyPageFilters } from './helpers';
 
 export const getSelectedChatConversation = ({
   allConversations,
@@ -18,24 +19,53 @@ const getters = {
     );
     return selectedChat || {};
   },
-  getMineChats(_state) {
-    const currentUserID = authAPI.getCurrentUser().id;
-    return _state.allConversations.filter(chat =>
-      !chat.meta.assignee
-        ? false
-        : chat.status === _state.chatStatusFilter &&
-          chat.meta.assignee.id === currentUserID
-    );
+  getLastEmailInSelectedChat: (stage, _getters) => {
+    const selectedChat = _getters.getSelectedChat;
+    const { messages = [] } = selectedChat;
+    const lastEmail = [...messages].reverse().find(message => {
+      const {
+        content_attributes: contentAttributes = {},
+        message_type: messageType,
+      } = message;
+      const { email = {} } = contentAttributes;
+      const isIncomingOrOutgoing =
+        messageType === MESSAGE_TYPE.OUTGOING ||
+        messageType === MESSAGE_TYPE.INCOMING;
+      if (email.from && isIncomingOrOutgoing) {
+        return true;
+      }
+      return false;
+    });
+
+    return lastEmail;
   },
-  getUnAssignedChats(_state) {
-    return _state.allConversations.filter(
-      chat => !chat.meta.assignee && chat.status === _state.chatStatusFilter
-    );
+  getMineChats: (_state, _, __, rootGetters) => activeFilters => {
+    const currentUserID = rootGetters.getCurrentUser?.id;
+
+    return _state.allConversations.filter(conversation => {
+      const { assignee } = conversation.meta;
+      const isAssignedToMe = assignee && assignee.id === currentUserID;
+      const shouldFilter = applyPageFilters(conversation, activeFilters);
+      const isChatMine = isAssignedToMe && shouldFilter;
+
+      return isChatMine;
+    });
   },
-  getAllStatusChats(_state) {
-    return _state.allConversations.filter(
-      chat => chat.status === _state.chatStatusFilter
-    );
+  getAppliedConversationFilters: _state => {
+    return _state.appliedFilters;
+  },
+  getUnAssignedChats: _state => activeFilters => {
+    return _state.allConversations.filter(conversation => {
+      const isUnAssigned = !conversation.meta.assignee;
+      const shouldFilter = applyPageFilters(conversation, activeFilters);
+      return isUnAssigned && shouldFilter;
+    });
+  },
+  getAllStatusChats: _state => activeFilters => {
+    return _state.allConversations.filter(conversation => {
+      const shouldFilter = applyPageFilters(conversation, activeFilters);
+      return shouldFilter;
+    });
   },
   getChatListLoadingStatus: ({ listLoadingStatus }) => listLoadingStatus,
   getAllMessagesLoaded(_state) {
@@ -56,17 +86,13 @@ const getters = {
   },
   getChatStatusFilter: ({ chatStatusFilter }) => chatStatusFilter,
   getSelectedInbox: ({ currentInbox }) => currentInbox,
-  getNextChatConversation: _state => {
-    const [selectedChat] = getSelectedChatConversation(_state);
-    const conversations = getters.getAllStatusChats(_state);
-    if (conversations.length <= 1) {
-      return null;
-    }
-    const currentIndex = conversations.findIndex(
-      conversation => conversation.id === selectedChat.id
+  getConversationById: _state => conversationId => {
+    return _state.allConversations.find(
+      value => value.id === Number(conversationId)
     );
-    const nextIndex = (currentIndex + 1) % conversations.length;
-    return conversations[nextIndex];
+  },
+  getConversationLastSeen: _state => {
+    return _state.conversationLastSeen;
   },
 };
 

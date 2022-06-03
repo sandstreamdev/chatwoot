@@ -1,15 +1,17 @@
 <template>
   <div class="column content-box">
-    <button
-      class="button nice icon success button--fixed-right-top"
+    <woot-button
+      color-scheme="success"
+      class-names="button--fixed-right-top"
+      icon="add-circle"
       @click="openAddPopup()"
     >
-      <i class="icon ion-android-add-circle"></i>
       {{ $t('CANNED_MGMT.HEADER_BTN_TXT') }}
-    </button>
+    </woot-button>
+
     <!-- List Canned Response -->
     <div class="row">
-      <div class="small-8 columns">
+      <div class="small-8 columns with-right-space ">
         <p
           v-if="!uiFlags.fetchingList && !records.length"
           class="no-items-error-message"
@@ -40,26 +42,33 @@
               :key="cannedItem.short_code"
             >
               <!-- Short Code  -->
-              <td>{{ cannedItem.short_code }}</td>
+              <td class="short-code">
+                {{ cannedItem.short_code }}
+              </td>
               <!-- Content -->
               <td>{{ cannedItem.content }}</td>
               <!-- Action Buttons -->
               <td class="button-wrapper">
-                <div @click="openEditPopup(cannedItem)">
-                  <woot-submit-button
-                    :button-text="$t('CANNED_MGMT.EDIT.BUTTON_TEXT')"
-                    icon-class="ion-edit"
-                    button-class="link hollow grey-btn"
-                  />
-                </div>
-                <div @click="openDeletePopup(cannedItem, index)">
-                  <woot-submit-button
-                    :button-text="$t('CANNED_MGMT.DELETE.BUTTON_TEXT')"
-                    :loading="loading[cannedItem.id]"
-                    icon-class="ion-close-circled"
-                    button-class="link hollow grey-btn"
-                  />
-                </div>
+                <woot-button
+                  v-tooltip.top="$t('CANNED_MGMT.EDIT.BUTTON_TEXT')"
+                  variant="smooth"
+                  size="tiny"
+                  color-scheme="secondary"
+                  icon="edit"
+                  @click="openEditPopup(cannedItem)"
+                >
+                </woot-button>
+                <woot-button
+                  v-tooltip.top="$t('CANNED_MGMT.DELETE.BUTTON_TEXT')"
+                  variant="smooth"
+                  color-scheme="alert"
+                  size="tiny"
+                  icon="dismiss-circle"
+                  class-names="grey-btn"
+                  :is-loading="loading[cannedItem.id]"
+                  @click="openDeletePopup(cannedItem, index)"
+                >
+                </woot-button>
               </td>
             </tr>
           </tbody>
@@ -67,7 +76,7 @@
       </div>
 
       <div class="small-4 columns">
-        <span v-html="$t('CANNED_MGMT.SIDEBAR_TXT')"></span>
+        <span v-dompurify-html="$t('CANNED_MGMT.SIDEBAR_TXT')"></span>
       </div>
     </div>
     <!-- Add Agent -->
@@ -99,9 +108,7 @@
   </div>
 </template>
 <script>
-/* global bus */
 import { mapGetters } from 'vuex';
-
 import AddCanned from './AddCanned';
 import EditCanned from './EditCanned';
 
@@ -201,3 +208,8 @@ export default {
   },
 };
 </script>
+<style scoped>
+.short-code {
+  width: 14rem;
+}
+</style>

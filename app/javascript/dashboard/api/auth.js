@@ -1,6 +1,4 @@
-/* eslint no-console: 0 */
 /* global axios */
-/* eslint no-undef: "error" */
 
 import Cookies from 'js-cookie';
 import endPoints from './endPoints';
@@ -13,7 +11,7 @@ export default {
         .post('auth/sign_in', creds)
         .then(response => {
           setAuthCredentials(response);
-          resolve();
+          resolve(response.data);
         })
         .catch(error => {
           reject(error.response);
@@ -29,6 +27,8 @@ export default {
           account_name: creds.accountName.trim(),
           user_full_name: creds.fullName.trim(),
           email: creds.email,
+          password: creds.password,
+          h_captcha_client_response: creds.hCaptchaClientResponse,
         })
         .then(response => {
           setAuthCredentials(response);
@@ -59,40 +59,28 @@ export default {
     });
     return fetchPromise;
   },
-
-  isLoggedIn() {
-    return !!Cookies.getJSON('auth_data');
+  hasAuthCookie() {
+    return !!Cookies.getJSON('cw_d_session_info');
   },
-
-  isAdmin() {
-    if (this.isLoggedIn()) {
-      return Cookies.getJSON('user').role === 'administrator';
-    }
-    return false;
-  },
-
   getAuthData() {
-    if (this.isLoggedIn()) {
-      return Cookies.getJSON('auth_data');
+    if (this.hasAuthCookie()) {
+      return Cookies.getJSON('cw_d_session_info');
     }
     return false;
   },
-  getPubSubToken() {
-    if (this.isLoggedIn()) {
-      return Cookies.getJSON('user').pubsub_token;
-    }
-    return null;
-  },
-  getCurrentUser() {
-    if (this.isLoggedIn()) {
-      return Cookies.getJSON('user');
-    }
-    return null;
-  },
-
   verifyPasswordToken({ confirmationToken }) {
-    return axios.post('auth/confirmation', {
-      confirmation_token: confirmationToken,
+    return new Promise((resolve, reject) => {
+      axios
+        .post('auth/confirmation', {
+          confirmation_token: confirmationToken,
+        })
+        .then(response => {
+          setAuthCredentials(response);
+          resolve(response);
+        })
+        .catch(error => {
+          reject(error.response);
+        });
     });
   },
 
@@ -123,19 +111,23 @@ export default {
     password,
     password_confirmation,
     displayName,
+    avatar,
     ...profileAttributes
   }) {
     const formData = new FormData();
     Object.keys(profileAttributes).forEach(key => {
-      const value = profileAttributes[key];
-      if (value) {
-        formData.append(`profile[${key}]`, value);
+      const hasValue = profileAttributes[key] === undefined;
+      if (!hasValue) {
+        formData.append(`profile[${key}]`, profileAttributes[key]);
       }
     });
     formData.append('profile[display_name]', displayName || '');
     if (password && password_confirmation) {
       formData.append('profile[password]', password);
       formData.append('profile[password_confirmation]', password_confirmation);
+    }
+    if (avatar) {
+      formData.append('profile[avatar]', avatar);
     }
     return axios.put(endPoints('profileUpdate').url, formData);
   },
@@ -146,9 +138,13 @@ export default {
     });
   },
 
-  updateAvailability({ availability }) {
-    return axios.put(endPoints('profileUpdate').url, {
-      profile: { availability },
+  updateAvailability(availabilityData) {
+    return axios.post(endPoints('availabilityUpdate').url, {
+      profile: { ...availabilityData },
     });
+  },
+
+  deleteAvatar() {
+    return axios.delete(endPoints('deleteAvatar').url);
   },
 };

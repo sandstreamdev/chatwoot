@@ -17,19 +17,16 @@
 #
 # Foreign Keys
 #
-#  fk_rails_...  (account_id => accounts.id)
+#  fk_rails_...  (account_id => accounts.id) ON DELETE => cascade
 #
 class Team < ApplicationRecord
-  include RegexHelper
-
   belongs_to :account
-  has_many :team_members, dependent: :destroy
+  has_many :team_members, dependent: :destroy_async
   has_many :members, through: :team_members, source: :user
   has_many :conversations, dependent: :nullify
 
   validates :name,
             presence: { message: 'must not be blank' },
-            format: { with: UNICODE_CHARACTER_NUMBER_HYPHEN_UNDERSCORE },
             uniqueness: { scope: :account_id }
 
   before_validation do
@@ -41,6 +38,14 @@ class Team < ApplicationRecord
   end
 
   def remove_member(user_id)
-    team_members.find_by(user_id: user_id)&.destroy
+    team_members.find_by(user_id: user_id)&.destroy!
+  end
+
+  def messages
+    account.messages.where(conversation_id: conversations.pluck(:id))
+  end
+
+  def reporting_events
+    account.reporting_events.where(conversation_id: conversations.pluck(:id))
   end
 end

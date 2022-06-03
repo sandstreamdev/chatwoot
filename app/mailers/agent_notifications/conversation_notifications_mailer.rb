@@ -24,18 +24,19 @@ class AgentNotifications::ConversationNotificationsMailer < ApplicationMailer
 
     @agent = agent
     @conversation = message.conversation
+    @message = message
     subject = "#{@agent.available_name}, You have been mentioned in conversation [ID - #{@conversation.display_id}]"
     @action_url = app_account_conversation_url(account_id: @conversation.account_id, id: @conversation.display_id)
     send_mail_with_liquid(to: @agent.email, subject: subject) and return
   end
 
-  def assigned_conversation_new_message(conversation, agent)
+  def assigned_conversation_new_message(message, agent)
     return unless smtp_config_set_or_development?
     # Don't spam with email notifications if agent is online
-    return if ::OnlineStatusTracker.get_presence(conversation.account.id, 'User', agent.id)
+    return if ::OnlineStatusTracker.get_presence(message.account_id, 'User', agent.id)
 
     @agent = agent
-    @conversation = conversation
+    @conversation = message.conversation
     subject = "#{@agent.available_name}, New message in your assigned conversation [ID - #{@conversation.display_id}]."
     @action_url = app_account_conversation_url(account_id: @conversation.account_id, id: @conversation.display_id)
     send_mail_with_liquid(to: @agent.email, subject: subject) and return
@@ -47,7 +48,8 @@ class AgentNotifications::ConversationNotificationsMailer < ApplicationMailer
     super.merge({
                   user: @agent,
                   conversation: @conversation,
-                  inbox: @conversation.inbox
+                  inbox: @conversation.inbox,
+                  message: @message
                 })
   end
 end

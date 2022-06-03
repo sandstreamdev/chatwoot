@@ -1,14 +1,15 @@
 <template>
   <div class="column content-box">
-    <button
-      class="button nice icon success button--fixed-right-top"
+    <woot-button
+      color-scheme="success"
+      class-names="button--fixed-right-top"
+      icon="add-circle"
       @click="openAddPopup"
     >
-      <i class="icon ion-android-add-circle"></i>
       {{ $t('LABEL_MGMT.HEADER_BTN_TXT') }}
-    </button>
+    </woot-button>
     <div class="row">
-      <div class="small-8 columns">
+      <div class="small-8 columns with-right-space ">
         <p
           v-if="!uiFlags.isFetching && !records.length"
           class="no-items-error-message"
@@ -42,20 +43,28 @@
                 </div>
               </td>
               <td class="button-wrapper">
-                <woot-submit-button
-                  :button-text="$t('LABEL_MGMT.FORM.EDIT')"
-                  icon-class="ion-edit"
-                  button-class="link hollow grey-btn"
+                <woot-button
+                  v-tooltip.top="$t('LABEL_MGMT.FORM.EDIT')"
+                  variant="smooth"
+                  size="tiny"
+                  color-scheme="secondary"
+                  class-names="grey-btn"
+                  :is-loading="loading[label.id]"
+                  icon="edit"
                   @click="openEditPopup(label)"
-                />
-
-                <woot-submit-button
-                  :button-text="$t('LABEL_MGMT.FORM.DELETE')"
-                  :loading="loading[label.id]"
-                  icon-class="ion-close-circled"
-                  button-class="link hollow grey-btn"
+                >
+                </woot-button>
+                <woot-button
+                  v-tooltip.top="$t('LABEL_MGMT.FORM.DELETE')"
+                  variant="smooth"
+                  color-scheme="alert"
+                  size="tiny"
+                  icon="dismiss-circle"
+                  class-names="grey-btn"
+                  :is-loading="loading[label.id]"
                   @click="openDeletePopup(label, index)"
-                />
+                >
+                </woot-button>
               </td>
             </tr>
           </tbody>
@@ -63,22 +72,19 @@
       </div>
 
       <div class="small-4 columns">
-        <span v-html="$t('LABEL_MGMT.SIDEBAR_TXT')"></span>
+        <span v-dompurify-html="$t('LABEL_MGMT.SIDEBAR_TXT')"></span>
       </div>
     </div>
+    <woot-modal :show.sync="showAddPopup" :on-close="hideAddPopup">
+      <add-label @close="hideAddPopup" />
+    </woot-modal>
 
-    <add-label
-      v-if="showAddPopup"
-      :show.sync="showAddPopup"
-      :on-close="hideAddPopup"
-    />
-
-    <edit-label
-      v-if="showEditPopup"
-      :show.sync="showEditPopup"
-      :selected-response="selectedResponse"
-      :on-close="hideEditPopup"
-    />
+    <woot-modal :show.sync="showEditPopup" :on-close="hideEditPopup">
+      <edit-label
+        :selected-response="selectedResponse"
+        @close="hideEditPopup"
+      />
+    </woot-modal>
 
     <woot-delete-modal
       :show.sync="showDeleteConfirmationPopup"

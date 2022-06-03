@@ -1,5 +1,6 @@
 import * as MutationHelpers from 'shared/helpers/vuex/mutationHelpers';
 import * as types from '../mutation-types';
+import { INBOX_TYPES } from 'shared/mixins/inboxMixin';
 import InboxesAPI from '../../api/inboxes';
 import WebChannel from '../../api/channel/webChannel';
 import FBChannel from '../../api/channel/fbChannel';
@@ -11,13 +12,16 @@ const buildInboxData = inboxParams => {
   Object.keys(inboxProperties).forEach(key => {
     formData.append(key, inboxProperties[key]);
   });
-  const { selectedFeatureFlags = [], ...channelParams } = channel;
-  if (selectedFeatureFlags.length) {
-    selectedFeatureFlags.forEach(featureFlag => {
-      formData.append(`channel[selected_feature_flags][]`, featureFlag);
-    });
-  } else {
-    formData.append('channel[selected_feature_flags][]', '');
+  const { selectedFeatureFlags, ...channelParams } = channel;
+  // selectedFeatureFlags needs to be empty when creating a website channel
+  if (selectedFeatureFlags) {
+    if (selectedFeatureFlags.length) {
+      selectedFeatureFlags.forEach(featureFlag => {
+        formData.append(`channel[selected_feature_flags][]`, featureFlag);
+      });
+    } else {
+      formData.append('channel[selected_feature_flags][]', '');
+    }
   }
   Object.keys(channelParams).forEach(key => {
     formData.append(`channel[${key}]`, channel[key]);
@@ -34,12 +38,28 @@ export const state = {
     isUpdating: false,
     isUpdatingAutoAssignment: false,
     isDeleting: false,
+    isUpdatingIMAP: false,
+    isUpdatingSMTP: false,
   },
 };
 
 export const getters = {
   getInboxes($state) {
     return $state.records;
+  },
+  getNewConversationInboxes($state) {
+    return $state.records.filter(inbox => {
+      const {
+        channel_type: channelType,
+        phone_number: phoneNumber = '',
+      } = inbox;
+
+      const isEmailChannel = channelType === INBOX_TYPES.EMAIL;
+      const isSmsChannel =
+        channelType === INBOX_TYPES.TWILIO &&
+        phoneNumber.startsWith('whatsapp');
+      return isEmailChannel || isSmsChannel;
+    });
   },
   getInbox: $state => inboxId => {
     const [inbox] = $state.records.filter(
@@ -49,6 +69,26 @@ export const getters = {
   },
   getUIFlags($state) {
     return $state.uiFlags;
+  },
+  getWebsiteInboxes($state) {
+    return $state.records.filter(item => item.channel_type === INBOX_TYPES.WEB);
+  },
+  getTwilioInboxes($state) {
+    return $state.records.filter(
+      item => item.channel_type === INBOX_TYPES.TWILIO
+    );
+  },
+  getSMSInboxes($state) {
+    return $state.records.filter(
+      item =>
+        item.channel_type === INBOX_TYPES.SMS ||
+        (item.channel_type === INBOX_TYPES.TWILIO && item.medium === 'sms')
+    );
+  },
+  dialogFlowEnabledInboxes($state) {
+    return $state.records.filter(
+      item => item.channel_type !== INBOX_TYPES.EMAIL
+    );
   },
 };
 
@@ -131,6 +171,52 @@ export const actions = {
       throw new Error(error);
     }
   },
+  updateInboxIMAP: async (
+    { commit },
+    { id, formData = true, ...inboxParams }
+  ) => {
+    commit(types.default.SET_INBOXES_UI_FLAG, {
+      isUpdatingIMAP: true,
+    });
+    try {
+      const response = await InboxesAPI.update(
+        id,
+        formData ? buildInboxData(inboxParams) : inboxParams
+      );
+      commit(types.default.EDIT_INBOXES, response.data);
+      commit(types.default.SET_INBOXES_UI_FLAG, {
+        isUpdatingIMAP: false,
+      });
+    } catch (error) {
+      commit(types.default.SET_INBOXES_UI_FLAG, {
+        isUpdatingIMAP: false,
+      });
+      throw new Error(error);
+    }
+  },
+  updateInboxSMTP: async (
+    { commit },
+    { id, formData = true, ...inboxParams }
+  ) => {
+    commit(types.default.SET_INBOXES_UI_FLAG, {
+      isUpdatingSMTP: true,
+    });
+    try {
+      const response = await InboxesAPI.update(
+        id,
+        formData ? buildInboxData(inboxParams) : inboxParams
+      );
+      commit(types.default.EDIT_INBOXES, response.data);
+      commit(types.default.SET_INBOXES_UI_FLAG, {
+        isUpdatingSMTP: false,
+      });
+    } catch (error) {
+      commit(types.default.SET_INBOXES_UI_FLAG, {
+        isUpdatingSMTP: false,
+      });
+      throw new Error(error);
+    }
+  },
   delete: async ({ commit }, inboxId) => {
     commit(types.default.SET_INBOXES_UI_FLAG, { isDeleting: true });
     try {
@@ -148,6 +234,13 @@ export const actions = {
       commit(types.default.EDIT_INBOXES, response.data);
     } catch (error) {
       throw new Error(error.message);
+    }
+  },
+  deleteInboxAvatar: async (_, inboxId) => {
+    try {
+      await InboxesAPI.deleteInboxAvatar(inboxId);
+    } catch (error) {
+      throw new Error(error);
     }
   },
 };

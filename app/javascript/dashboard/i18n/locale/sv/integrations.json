@@ -2,6 +2,29 @@
   "INTEGRATION_SETTINGS": {
     "HEADER": "Integrationer",
     "WEBHOOK": {
+      "SUBSCRIBED_EVENTS": "Subscribed Events",
+      "FORM": {
+        "CANCEL": "Avbryt",
+        "DESC": "Webbhook-händelser ger dig realtidsinformation om vad som händer i ditt Chatwoot-konto. Ange en giltig URL för att konfigurera en callback.",
+        "SUBSCRIPTIONS": {
+          "LABEL": "Events",
+          "EVENTS": {
+            "CONVERSATION_CREATED": "Conversation Created",
+            "CONVERSATION_STATUS_CHANGED": "Conversation Status Changed",
+            "CONVERSATION_UPDATED": "Conversation Updated",
+            "MESSAGE_CREATED": "Message created",
+            "MESSAGE_UPDATED": "Message updated",
+            "WEBWIDGET_TRIGGERED": "Live chat widget opened by the user"
+          }
+        },
+        "END_POINT": {
+          "LABEL": "Webhook URL",
+          "PLACEHOLDER": "Exempel: https://exempel/api/webhook",
+          "ERROR": "Ange en giltig URL"
+        },
+        "EDIT_SUBMIT": "Update webhook",
+        "ADD_SUBMIT": "Create webhook"
+      },
       "TITLE": "Webhook",
       "CONFIGURE": "Konfigurera",
       "HEADER": "Webhook-inställningar",
@@ -17,20 +40,19 @@
           "Åtgärder"
         ]
       },
+      "EDIT": {
+        "BUTTON_TEXT": "Redigera",
+        "TITLE": "Edit webhook",
+        "API": {
+          "SUCCESS_MESSAGE": "Webhook configuration updated successfully",
+          "ERROR_MESSAGE": "Kunde inte ansluta till Woot Server, försök igen senare"
+        }
+      },
       "ADD": {
         "CANCEL": "Avbryt",
         "TITLE": "Lägg till ny webhook",
-        "DESC": "Webbhook-händelser ger dig realtidsinformation om vad som händer i ditt Chatwoot-konto. Ange en giltig URL för att konfigurera en callback.",
-        "FORM": {
-          "END_POINT": {
-            "LABEL": "Webhook URL",
-            "PLACEHOLDER": "Exempel: https://exempel/api/webhook",
-            "ERROR": "Ange en giltig URL"
-          },
-          "SUBMIT": "Skapa webhook"
-        },
         "API": {
-          "SUCCESS_MESSAGE": "Webhook har lagts till",
+          "SUCCESS_MESSAGE": "Webhook configuration added successfully",
           "ERROR_MESSAGE": "Kunde inte ansluta till Woot Server, försök igen senare"
         }
       },
@@ -42,10 +64,16 @@
         },
         "CONFIRM": {
           "TITLE": "Bekräfta borttagning",
-          "MESSAGE": "Är du säker på att ta bort ",
+          "MESSAGE": "Are you sure to delete the webhook? (%{webhookURL})",
           "YES": "Ja, ta bort ",
           "NO": "Nej, behåll"
         }
+      }
+    },
+    "SLACK": {
+      "HELP_TEXT": {
+        "TITLE": "Using Slack Integration",
+        "BODY": "<br/><p>Chatwoot will now sync all the incoming conversations into the <b><i>customer-conversations</i></b> channel inside your slack workplace.</p><p>Replying to a conversation thread in <b><i>customer-conversations</i></b> slack channel will create a response back to the customer through chatwoot.</p><p>Start the replies with <b><i>note:</i></b> to create private notes instead of replies.</p><p>If the replier on slack has an agent profile in chatwoot under the same email, the replies will be associated accordingly.</p><p>When the replier doesn't have an associated agent profile, the replies will be made from the bot profile.</p>"
       }
     },
     "DELETE": {

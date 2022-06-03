@@ -1,9 +1,16 @@
 class Webhooks::Trigger
   def self.execute(url, payload)
-    RestClient.post(url, payload.to_json, { content_type: :json, accept: :json })
-  rescue *ExceptionList::REST_CLIENT_EXCEPTIONS, *ExceptionList::URI_EXCEPTIONS => e
-    Rails.logger.info "Exception: invalid webhook url #{url} : #{e.message}"
+    response = RestClient::Request.execute(
+      method: :post,
+      url: url, payload: payload.to_json,
+      headers: { content_type: :json, accept: :json },
+      timeout: 5
+    )
+    Rails.logger.info "Performed Request:  Code - #{response.code}"
+  rescue *ExceptionList::REST_CLIENT_EXCEPTIONS, URI::InvalidURIError => e
+    Rails.logger.error "Exception: invalid webhook url #{url} : #{e.message}"
   rescue StandardError => e
-    Raven.capture_exception(e)
+    Rails.logger.error "Exception: invalid webhook url #{url} : #{e.message}"
+    ChatwootExceptionTracker.new(e).capture_exception
   end
 end

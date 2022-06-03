@@ -6,8 +6,12 @@ class Twilio::SendOnTwilioService < Base::SendOnChannelService
   end
 
   def perform_reply
-    twilio_message = client.messages.create(message_params)
-    message.update!(source_id: twilio_message.sid)
+    begin
+      twilio_message = client.messages.create(**message_params)
+    rescue Twilio::REST::TwilioError => e
+      ChatwootExceptionTracker.new(e, user: message.sender, account: message.account).capture_exception
+    end
+    message.update!(source_id: twilio_message.sid) if twilio_message
   end
 
   def message_params
@@ -16,12 +20,12 @@ class Twilio::SendOnTwilioService < Base::SendOnChannelService
       from: channel.phone_number,
       to: contact_inbox.source_id
     }
-    params[:media_url] = attachments if channel.whatsapp? && message.attachments.present?
+    params[:media_url] = attachments if message.attachments.present?
     params
   end
 
   def attachments
-    message.attachments.map(&:file_url)
+    message.attachments.map(&:download_url)
   end
 
   def inbox

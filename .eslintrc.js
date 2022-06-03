@@ -28,8 +28,9 @@ module.exports = {
     }],
     'vue/html-self-closing': 'off',
     "vue/no-v-html": 'off',
-    'import/extensions': ['off']
-
+    'vue/singleline-html-element-content-newline': 'off',
+    'import/extensions': ['off'],
+    'no-console': 'error'
   },
   settings: {
     'import/resolver': {

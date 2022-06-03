@@ -47,33 +47,128 @@ describe('#getters', () => {
       ]);
     });
   });
-  describe('#getNextChatConversation', () => {
-    it('return the next chat', () => {
-      const state = {
-        allConversations: [
-          {
-            id: 1,
-          },
-          {
-            id: 2,
-          },
-        ],
-        selectedChatId: 1,
-      };
-      expect(getters.getNextChatConversation(state)).toEqual({
-        id: 2,
-      });
+  describe('#getUnAssignedChats', () => {
+    it('order returns only chats assigned to user', () => {
+      const conversationList = [
+        {
+          id: 1,
+          inbox_id: 2,
+          status: 1,
+          meta: { assignee: { id: 1 } },
+          labels: ['sales', 'dev'],
+        },
+        {
+          id: 2,
+          inbox_id: 2,
+          status: 1,
+          meta: {},
+          labels: ['dev'],
+        },
+        {
+          id: 11,
+          inbox_id: 3,
+          status: 1,
+          meta: { assignee: { id: 1 } },
+          labels: [],
+        },
+        {
+          id: 22,
+          inbox_id: 4,
+          status: 1,
+          meta: { team: { id: 5 } },
+          labels: ['sales'],
+        },
+      ];
+
+      expect(
+        getters.getUnAssignedChats({ allConversations: conversationList })({
+          status: 1,
+        })
+      ).toEqual([
+        {
+          id: 2,
+          inbox_id: 2,
+          status: 1,
+          meta: {},
+          labels: ['dev'],
+        },
+        {
+          id: 22,
+          inbox_id: 4,
+          status: 1,
+          meta: { team: { id: 5 } },
+          labels: ['sales'],
+        },
+      ]);
     });
-    it('return null when there is only one chat', () => {
+  });
+  describe('#getConversationById', () => {
+    it('get conversations based on id', () => {
       const state = {
         allConversations: [
           {
             id: 1,
           },
         ],
-        selectedChatId: 1,
       };
-      expect(getters.getNextChatConversation(state)).toBeNull();
+      expect(getters.getConversationById(state)(1)).toEqual({ id: 1 });
+    });
+  });
+
+  describe('#getAppliedConversationFilters', () => {
+    it('getAppliedConversationFilters', () => {
+      const filtersList = [
+        {
+          attribute_key: 'status',
+          filter_operator: 'equal_to',
+          values: [{ id: 'snoozed', name: 'Snoozed' }],
+          query_operator: 'and',
+        },
+      ];
+      const state = {
+        appliedFilters: filtersList,
+      };
+      expect(getters.getAppliedConversationFilters(state)).toEqual(filtersList);
+    });
+  });
+
+  describe('#getConversationLastSeen', () => {
+    it('getConversationLastSeen', () => {
+      const timestamp = 1649856659;
+      const state = {
+        conversationLastSeen: timestamp,
+      };
+      expect(getters.getConversationLastSeen(state)).toEqual(timestamp);
+    });
+  });
+
+  describe('#getLastEmailInSelectedChat', () => {
+    it('Returns cc in last email', () => {
+      const state = {};
+      const getSelectedChat = {
+        messages: [
+          {
+            message_type: 1,
+            content_attributes: {
+              email: {
+                from: 'why@how.my',
+                cc: ['nithin@me.co', 'we@who.why'],
+              },
+            },
+          },
+        ],
+      };
+      expect(
+        getters.getLastEmailInSelectedChat(state, { getSelectedChat })
+      ).toEqual({
+        message_type: 1,
+        content_attributes: {
+          email: {
+            from: 'why@how.my',
+            cc: ['nithin@me.co', 'we@who.why'],
+          },
+        },
+      });
     });
   });
 });

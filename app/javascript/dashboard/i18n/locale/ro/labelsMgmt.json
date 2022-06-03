@@ -19,7 +19,9 @@
       "NAME": {
         "LABEL": "Nume etichetă",
         "PLACEHOLDER": "Nume etichetă",
-        "ERROR": "Numele etichetei este necesar"
+        "REQUIRED_ERROR": "Este necesar numele etichetei",
+        "MINIMUM_LENGTH_ERROR": "Lungimea minimă 2 este necesară",
+        "VALID_ERROR": "Numai alfabetele, numerele, cratima și sublinierea sunt permise"
       },
       "DESCRIPTION": {
         "LABEL": "Descriere",

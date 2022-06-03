@@ -17,7 +17,23 @@
           <woot-code
             v-if="isATwilioInbox"
             lang="html"
-            :script="twilioCallbackURL"
+            :script="currentInbox.callback_webhook_url"
+          >
+          </woot-code>
+        </div>
+        <div class="medium-6 small-offset-3">
+          <woot-code
+            v-if="isALineInbox"
+            lang="html"
+            :script="currentInbox.callback_webhook_url"
+          >
+          </woot-code>
+        </div>
+        <div class="medium-6 small-offset-3">
+          <woot-code
+            v-if="isASmsInbox"
+            lang="html"
+            :script="currentInbox.callback_webhook_url"
           >
           </woot-code>
         </div>
@@ -25,19 +41,30 @@
           <woot-code
             v-if="isAEmailInbox"
             lang="html"
-            :script="currentInbox.forward_to_address"
+            :script="currentInbox.forward_to_email"
           >
           </woot-code>
         </div>
-        <router-link
-          class="button success nice"
-          :to="{
-            name: 'inbox_dashboard',
-            params: { inboxId: this.$route.params.inbox_id },
-          }"
-        >
-          {{ $t('INBOX_MGMT.FINISH.BUTTON_TEXT') }}
-        </router-link>
+        <div class="footer">
+          <router-link
+            class="button hollow primary settings-button"
+            :to="{
+              name: 'settings_inbox_show',
+              params: { inboxId: this.$route.params.inbox_id },
+            }"
+          >
+            {{ $t('INBOX_MGMT.FINISH.MORE_SETTINGS') }}
+          </router-link>
+          <router-link
+            class="button success"
+            :to="{
+              name: 'inbox_dashboard',
+              params: { inboxId: this.$route.params.inbox_id },
+            }"
+          >
+            {{ $t('INBOX_MGMT.FINISH.BUTTON_TEXT') }}
+          </router-link>
+        </div>
       </div>
     </empty-state>
   </div>
@@ -64,6 +91,12 @@ export default {
     isAEmailInbox() {
       return this.currentInbox.channel_type === 'Channel::Email';
     },
+    isALineInbox() {
+      return this.currentInbox.channel_type === 'Channel::Line';
+    },
+    isASmsInbox() {
+      return this.currentInbox.channel_type === 'Channel::Sms';
+    },
     message() {
       if (this.isATwilioInbox) {
         return `${this.$t('INBOX_MGMT.FINISH.MESSAGE')}. ${this.$t(
@@ -71,14 +104,27 @@ export default {
         )}`;
       }
 
+      if (this.isASmsInbox) {
+        return `${this.$t('INBOX_MGMT.FINISH.MESSAGE')}. ${this.$t(
+          'INBOX_MGMT.ADD.SMS.BANDWIDTH.API_CALLBACK.SUBTITLE'
+        )}`;
+      }
+
+      if (this.isALineInbox) {
+        return `${this.$t('INBOX_MGMT.FINISH.MESSAGE')}. ${this.$t(
+          'INBOX_MGMT.ADD.LINE_CHANNEL.API_CALLBACK.SUBTITLE'
+        )}`;
+      }
+
       if (this.isAEmailInbox) {
         return this.$t('INBOX_MGMT.ADD.EMAIL_CHANNEL.FINISH_MESSAGE');
       }
 
-      if (!this.currentInbox.web_widget_script) {
-        return this.$t('INBOX_MGMT.FINISH.MESSAGE');
+      if (this.currentInbox.web_widget_script) {
+        return this.$t('INBOX_MGMT.FINISH.WEBSITE_SUCCESS');
       }
-      return this.$t('INBOX_MGMT.FINISH.WEBSITE_SUCCESS');
+
+      return this.$t('INBOX_MGMT.FINISH.MESSAGE');
     },
   },
 };
@@ -89,5 +135,14 @@ export default {
 .website--code {
   margin: $space-normal auto;
   max-width: 70%;
+}
+
+.footer {
+  display: flex;
+  justify-content: center;
+}
+
+.settings-button {
+  margin-right: var(--space-small);
 }
 </style>

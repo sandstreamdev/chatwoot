@@ -1,17 +1,17 @@
 <template>
   <div class="column content-box">
-    <button
-      class="button nice icon success button--fixed-right-top"
+    <woot-button
+      color-scheme="success"
+      class-names="button--fixed-right-top"
+      icon="add-circle"
       @click="openAddPopup()"
     >
-      <i class="icon ion-android-add-circle"></i>
       {{ $t('AGENT_MGMT.HEADER_BTN_TXT') }}
-    </button>
-    <!-- Canned Response API Status -->
+    </woot-button>
 
     <!-- List Agents -->
     <div class="row">
-      <div class="small-8 columns">
+      <div class="small-8 columns with-right-space ">
         <woot-loading-state
           v-if="uiFlags.isFetching"
           :message="$t('AGENT_MGMT.LOADING')"
@@ -35,7 +35,9 @@
                 </td>
                 <!-- Agent Name + Email -->
                 <td>
-                  <span class="agent-name">{{ agent.name }}</span>
+                  <span class="agent-name">
+                    {{ agent.name }}
+                  </span>
                   <span>{{ agent.email }}</span>
                 </td>
                 <!-- Agent Role + Verification Status -->
@@ -55,21 +57,29 @@
                 <!-- Actions -->
                 <td>
                   <div class="button-wrapper">
-                    <woot-submit-button
+                    <woot-button
                       v-if="showEditAction(agent)"
-                      :button-text="$t('AGENT_MGMT.EDIT.BUTTON_TEXT')"
-                      icon-class="ion-edit"
-                      button-class="link hollow grey-btn"
+                      v-tooltip.top="$t('AGENT_MGMT.EDIT.BUTTON_TEXT')"
+                      variant="smooth"
+                      size="tiny"
+                      color-scheme="secondary"
+                      icon="edit"
+                      class-names="grey-btn"
                       @click="openEditPopup(agent)"
-                    />
-                    <woot-submit-button
+                    >
+                    </woot-button>
+                    <woot-button
                       v-if="showDeleteAction(agent)"
-                      :button-text="$t('AGENT_MGMT.DELETE.BUTTON_TEXT')"
-                      :loading="loading[agent.id]"
-                      icon-class="ion-close-circled"
-                      button-class="link hollow grey-btn"
+                      v-tooltip.top="$t('AGENT_MGMT.DELETE.BUTTON_TEXT')"
+                      variant="smooth"
+                      color-scheme="alert"
+                      size="tiny"
+                      icon="dismiss-circle"
+                      class-names="grey-btn"
+                      :is-loading="loading[agent.id]"
                       @click="openDeletePopup(agent, index)"
-                    />
+                    >
+                    </woot-button>
                   </div>
                 </td>
               </tr>
@@ -79,7 +89,7 @@
       </div>
       <div class="small-4 columns">
         <span
-          v-html="
+          v-dompurify-html="
             useInstallationName(
               $t('AGENT_MGMT.SIDEBAR_TXT'),
               globalConfig.installationName

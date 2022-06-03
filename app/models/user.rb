@@ -9,11 +9,13 @@
 #  confirmed_at           :datetime
 #  current_sign_in_at     :datetime
 #  current_sign_in_ip     :string
+#  custom_attributes      :jsonb
 #  display_name           :string
 #  email                  :string
 #  encrypted_password     :string           default(""), not null
 #  last_sign_in_at        :datetime
 #  last_sign_in_ip        :string
+#  message_signature      :text
 #  name                   :string           not null
 #  provider               :string           default("email"), not null
 #  pubsub_token           :string
@@ -22,6 +24,7 @@
 #  reset_password_token   :string
 #  sign_in_count          :integer          default(0), not null
 #  tokens                 :json
+#  type                   :string
 #  ui_settings            :jsonb
 #  uid                    :string           default(""), not null
 #  unconfirmed_email      :string
@@ -38,7 +41,6 @@
 
 class User < ApplicationRecord
   include AccessTokenable
-  include AvailabilityStatusable
   include Avatarable
   # Include default devise modules.
   include DeviseTokenAuth::Concerns::User
@@ -53,8 +55,11 @@ class User < ApplicationRecord
          :rememberable,
          :trackable,
          :validatable,
-         :confirmable
+         :confirmable,
+         :password_has_required_content
 
+  # TODO: remove in a future version once online status is moved to account users
+  # remove the column availability from users
   enum availability: { online: 0, offline: 1, busy: 2 }
 
   # The validation below has been commented out as it does not
@@ -62,35 +67,38 @@ class User < ApplicationRecord
   # validates_uniqueness_of :email, scope: :account_id
 
   validates :email, :name, presence: true
-  validates_length_of :name, minimum: 1
+  validates_length_of :name, minimum: 1, maximum: 255
 
-  has_many :account_users, dependent: :destroy
+  has_many :account_users, dependent: :destroy_async
   has_many :accounts, through: :account_users
   accepts_nested_attributes_for :account_users
 
   has_many :assigned_conversations, foreign_key: 'assignee_id', class_name: 'Conversation', dependent: :nullify
   alias_attribute :conversations, :assigned_conversations
+  has_many :csat_survey_responses, foreign_key: 'assigned_agent_id', dependent: :nullify
 
-  has_many :inbox_members, dependent: :destroy
+  has_many :inbox_members, dependent: :destroy_async
   has_many :inboxes, through: :inbox_members, source: :inbox
   has_many :messages, as: :sender
-  has_many :invitees, through: :account_users, class_name: 'User', foreign_key: 'inviter_id', dependent: :nullify
+  has_many :invitees, through: :account_users, class_name: 'User', foreign_key: 'inviter_id', source: :inviter, dependent: :nullify
 
-  has_many :notifications, dependent: :destroy
-  has_many :notification_settings, dependent: :destroy
-  has_many :notification_subscriptions, dependent: :destroy
-  has_many :team_members, dependent: :destroy
+  has_many :custom_filters, dependent: :destroy_async
+  has_many :dashboard_apps, dependent: :nullify
+  has_many :mentions, dependent: :destroy_async
+  has_many :notes, dependent: :nullify
+  has_many :notification_settings, dependent: :destroy_async
+  has_many :notification_subscriptions, dependent: :destroy_async
+  has_many :notifications, dependent: :destroy_async
+  has_many :portals, through: :portals_members
+  has_many :team_members, dependent: :destroy_async
   has_many :teams, through: :team_members
 
   before_validation :set_password_and_uid, on: :create
 
-  after_create_commit :create_access_token
-  after_save :update_presence_in_redis, if: :saved_change_to_availability?
-
   scope :order_by_full_name, -> { order('lower(name) ASC') }
 
   def send_devise_notification(notification, *args)
-    devise_mailer.send(notification, self, *args).deliver_later
+    devise_mailer.with(account: Current.account).send(notification, self, *args).deliver_later
   end
 
   def set_password_and_uid
@@ -102,13 +110,16 @@ class User < ApplicationRecord
   end
 
   def current_account_user
-    account_users.find_by(account_id: Current.account.id) if Current.account
+    # We want to avoid subsequent queries in case where the association is preloaded.
+    # using where here will trigger n+1 queries.
+    account_users.find { |ac_usr| ac_usr.account_id == Current.account.id } if Current.account
   end
 
   def available_name
     self[:display_name].presence || name
   end
 
+  # Used internally for Chatwoot in Chatwoot
   def hmac_identifier
     hmac_key = GlobalConfig.get('CHATWOOT_INBOX_HMAC_KEY')['CHATWOOT_INBOX_HMAC_KEY']
     return OpenSSL::HMAC.hexdigest('sha256', hmac_key, email) if hmac_key.present?
@@ -121,7 +132,7 @@ class User < ApplicationRecord
   end
 
   def assigned_inboxes
-    inboxes.where(account_id: Current.account.id)
+    administrator? ? Current.account.inboxes : inboxes.where(account_id: Current.account.id)
   end
 
   def administrator?
@@ -134,6 +145,14 @@ class User < ApplicationRecord
 
   def role
     current_account_user&.role
+  end
+
+  def availability_status
+    current_account_user&.availability_status
+  end
+
+  def auto_offline
+    current_account_user&.auto_offline
   end
 
   def inviter
@@ -151,7 +170,8 @@ class User < ApplicationRecord
       available_name: available_name,
       avatar_url: avatar_url,
       type: 'user',
-      availability_status: availability_status
+      availability_status: availability_status,
+      thumbnail: avatar_url
     }
   end
 
@@ -164,11 +184,16 @@ class User < ApplicationRecord
     }
   end
 
-  private
+  # https://github.com/lynndylanhurley/devise_token_auth/blob/6d7780ee0b9750687e7e2871b9a1c6368f2085a9/app/models/devise_token_auth/concerns/user.rb#L45
+  # Since this method is overriden in devise_token_auth it breaks the email reconfirmation flow.
+  def will_save_change_to_email?
+    mutations_from_database.changed?('email')
+  end
 
-  def update_presence_in_redis
-    accounts.each do |account|
-      OnlineStatusTracker.set_status(account.id, id, availability)
-    end
+  def notifications_meta(account_id)
+    {
+      unread_count: notifications.where(account_id: account_id, read_at: nil).count,
+      count: notifications.where(account_id: account_id).count
+    }
   end
 end

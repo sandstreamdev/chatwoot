@@ -1,55 +1,46 @@
 <template>
-  <div class="status">
-    <div class="status-view">
-      <div
-        :class="`status-badge status-badge__${currentUserAvailabilityStatus}`"
-      />
-
-      <div class="status-view--title">
-        {{ availabilityDisplayLabel }}
-      </div>
-    </div>
-
-    <div class="status-change">
-      <transition name="menu-slide">
-        <div
-          v-if="isStatusMenuOpened"
-          v-on-clickaway="closeStatusMenu"
-          class="dropdown-pane top"
-        >
-          <ul class="vertical dropdown menu">
-            <li
-              v-for="status in availabilityStatuses"
-              :key="status.value"
-              class="status-items"
-            >
-              <div :class="`status-badge status-badge__${status.value}`" />
-
-              <button
-                class="button clear status-change--dropdown-button"
-                :disabled="status.disabled"
-                @click="changeAvailabilityStatus(status.value)"
-              >
-                {{ status.label }}
-              </button>
-            </li>
-          </ul>
-        </div>
-      </transition>
-
-      <button class="status-change--change-button" @click="openStatusMenu">
-        {{ $t('SIDEBAR_ITEMS.CHANGE_AVAILABILITY_STATUS') }}
-      </button>
-    </div>
-  </div>
+  <woot-dropdown-menu>
+    <woot-dropdown-header :title="$t('SIDEBAR.SET_AVAILABILITY_TITLE')" />
+    <woot-dropdown-item
+      v-for="status in availabilityStatuses"
+      :key="status.value"
+      class="status-items"
+    >
+      <woot-button
+        size="small"
+        :color-scheme="status.disabled ? '' : 'secondary'"
+        :variant="status.disabled ? 'smooth' : 'clear'"
+        class-names="status-change--dropdown-button"
+        @click="changeAvailabilityStatus(status.value)"
+      >
+        <availability-status-badge :status="status.value" />
+        {{ status.label }}
+      </woot-button>
+    </woot-dropdown-item>
+    <woot-dropdown-divider />
+  </woot-dropdown-menu>
 </template>
 
 <script>
 import { mapGetters } from 'vuex';
 import { mixin as clickaway } from 'vue-clickaway';
+import WootDropdownItem from 'shared/components/ui/dropdown/DropdownItem';
+import WootDropdownMenu from 'shared/components/ui/dropdown/DropdownMenu';
+import WootDropdownHeader from 'shared/components/ui/dropdown/DropdownHeader';
+import WootDropdownDivider from 'shared/components/ui/dropdown/DropdownDivider';
+import AvailabilityStatusBadge from '../widgets/conversation/AvailabilityStatusBadge';
+
 const AVAILABILITY_STATUS_KEYS = ['online', 'busy', 'offline'];
 
 export default {
+  components: {
+    WootDropdownHeader,
+    WootDropdownDivider,
+    WootDropdownMenu,
+    WootDropdownItem,
+    AvailabilityStatusBadge,
+  },
+
   mixins: [clickaway],
 
   data() {
@@ -61,18 +52,19 @@ export default {
 
   computed: {
     ...mapGetters({
-      currentUser: 'getCurrentUser',
+      getCurrentUserAvailability: 'getCurrentUserAvailability',
+      currentAccountId: 'getCurrentAccountId',
     }),
     availabilityDisplayLabel() {
       const availabilityIndex = AVAILABILITY_STATUS_KEYS.findIndex(
-        key => key === this.currentUserAvailabilityStatus
+        key => key === this.currentUserAvailability
       );
       return this.$t('PROFILE_SETTINGS.FORM.AVAILABILITY.STATUSES_LIST')[
         availabilityIndex
       ];
     },
-    currentUserAvailabilityStatus() {
-      return this.currentUser.availability_status;
+    currentUserAvailability() {
+      return this.getCurrentUserAvailability;
     },
     availabilityStatuses() {
       return this.$t('PROFILE_SETTINGS.FORM.AVAILABILITY.STATUSES_LIST').map(
@@ -80,8 +72,7 @@ export default {
           label: statusLabel,
           value: AVAILABILITY_STATUS_KEYS[index],
           disabled:
-            this.currentUserAvailabilityStatus ===
-            AVAILABILITY_STATUS_KEYS[index],
+            this.currentUserAvailability === AVAILABILITY_STATUS_KEYS[index],
         })
       );
     },
@@ -95,15 +86,16 @@ export default {
       this.isStatusMenuOpened = false;
     },
     changeAvailabilityStatus(availability) {
+      const accountId = this.currentAccountId;
       if (this.isUpdating) {
         return;
       }
 
       this.isUpdating = true;
-
       this.$store
         .dispatch('updateAvailability', {
-          availability,
+          availability: availability,
+          account_id: accountId,
         })
         .finally(() => {
           this.isUpdating = false;
@@ -121,7 +113,7 @@ export default {
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  padding: $space-micro $space-smaller;
+  padding: var(--space-micro) var(--space-smaller);
 }
 
 .status-view {
@@ -129,10 +121,10 @@ export default {
   align-items: baseline;
 
   & &--title {
-    color: $color-gray;
-    font-size: $font-size-small;
-    font-weight: $font-weight-medium;
-    margin-left: $space-small;
+    color: var(--b-600);
+    font-size: var(--font-size-small);
+    font-weight: var(--font-weight-medium);
+    margin-left: var(--space-small);
 
     &:first-letter {
       text-transform: capitalize;
@@ -142,49 +134,13 @@ export default {
 
 .status-change {
   .dropdown-pane {
-    top: -130px;
+    top: -132px;
+    right: var(--space-normal);
   }
 
   .status-items {
     display: flex;
     align-items: baseline;
-  }
-
-  & &--change-button {
-    color: $color-gray;
-    font-size: $font-size-small;
-    border-bottom: 1px solid $color-gray;
-    cursor: pointer;
-
-    &:hover {
-      border-bottom: none;
-    }
-  }
-
-  & &--dropdown-button {
-    font-weight: $font-weight-normal;
-    font-size: $font-size-small;
-    padding: $space-small $space-one;
-    text-align: left;
-    width: 100%;
-  }
-}
-
-.status-badge {
-  width: $space-one;
-  height: $space-one;
-  border-radius: 50%;
-
-  &__online {
-    background: $success-color;
-  }
-
-  &__offline {
-    background: $color-gray;
-  }
-
-  &__busy {
-    background: $warning-color;
   }
 }
 </style>

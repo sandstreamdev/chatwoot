@@ -1,6 +1,7 @@
 import Vue from 'vue';
 import * as types from '../mutation-types';
 import ContactAPI from '../../api/contacts';
+import ConversationApi from '../../api/conversations';
 
 const state = {
   records: {},
@@ -19,6 +20,42 @@ export const getters = {
 };
 
 export const actions = {
+  create: async ({ commit }, params) => {
+    commit(types.default.SET_CONTACT_CONVERSATIONS_UI_FLAG, {
+      isCreating: true,
+    });
+    const {
+      inboxId,
+      message,
+      contactId,
+      sourceId,
+      mailSubject,
+      assigneeId,
+    } = params;
+    try {
+      const { data } = await ConversationApi.create({
+        inbox_id: inboxId,
+        contact_id: contactId,
+        source_id: sourceId,
+        additional_attributes: {
+          mail_subject: mailSubject,
+        },
+        message,
+        assignee_id: assigneeId,
+      });
+      commit(types.default.ADD_CONTACT_CONVERSATION, {
+        id: contactId,
+        data,
+      });
+      return data;
+    } catch (error) {
+      throw new Error(error);
+    } finally {
+      commit(types.default.SET_CONTACT_CONVERSATIONS_UI_FLAG, {
+        isCreating: false,
+      });
+    }
+  },
   get: async ({ commit }, contactId) => {
     commit(types.default.SET_CONTACT_CONVERSATIONS_UI_FLAG, {
       isFetching: true,
@@ -28,9 +65,6 @@ export const actions = {
       commit(types.default.SET_CONTACT_CONVERSATIONS, {
         id: contactId,
         data: response.data.payload,
-      });
-      commit(types.default.SET_ALL_CONVERSATION, response.data.payload, {
-        root: true,
       });
       commit(types.default.SET_CONTACT_CONVERSATIONS_UI_FLAG, {
         isFetching: false,
@@ -52,6 +86,13 @@ export const mutations = {
   },
   [types.default.SET_CONTACT_CONVERSATIONS]: ($state, { id, data }) => {
     Vue.set($state.records, id, data);
+  },
+  [types.default.ADD_CONTACT_CONVERSATION]: ($state, { id, data }) => {
+    const conversations = $state.records[id] || [];
+    Vue.set($state.records, id, [...conversations, data]);
+  },
+  [types.default.DELETE_CONTACT_CONVERSATION]: ($state, id) => {
+    Vue.delete($state.records, id);
   },
 };
 

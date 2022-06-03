@@ -1,31 +1,23 @@
 import Cookies from 'js-cookie';
-import { getBubbleView, IFrameHelper } from '../sdk/IFrameHelper';
-import md5 from 'md5';
-
-const REQUIRED_USER_KEYS = ['avatar_url', 'email', 'name'];
-
-const ALLOWED_USER_ATTRIBUTES = [...REQUIRED_USER_KEYS, 'identifier_hash'];
-
-export const getUserCookieName = () => {
-  const SET_USER_COOKIE_PREFIX = 'cw_user_';
-  const { websiteToken: websiteIdentifier } = window.$chatwoot;
-  return `${SET_USER_COOKIE_PREFIX}${websiteIdentifier}`;
-};
-
-export const getUserString = ({ identifier = '', user }) => {
-  const userStringWithSortedKeys = ALLOWED_USER_ATTRIBUTES.reduce(
-    (acc, key) => `${acc}${key}${user[key] || ''}`,
-    ''
-  );
-  return `${userStringWithSortedKeys}identifier${identifier}`;
-};
-
-const computeHashForUserData = (...args) => md5(getUserString(...args));
-
-export const hasUserKeys = user =>
-  REQUIRED_USER_KEYS.reduce((acc, key) => acc || !!user[key], false);
+import {
+  getBubbleView,
+  getDarkMode,
+  getWidgetStyle,
+} from '../sdk/settingsHelper';
+import {
+  computeHashForUserData,
+  getUserCookieName,
+  hasUserKeys,
+} from '../sdk/cookieHelpers';
+import { addClass, removeClass } from '../sdk/DOMHelpers';
+import { SDK_SET_BUBBLE_VISIBILITY } from '../shared/constants/sharedFrameEvents';
+import '../sdk/IFrameHelper.js';
 
 const runSDK = ({ baseUrl, cookieOptions = {}, websiteToken }) => {
+  if (window.$chatwoot) {
+    return;
+  }
+
   const chatwootSettings = window.chatwootSettings || {};
   window.$chatwoot = {
     baseUrl,
@@ -39,10 +31,38 @@ const runSDK = ({ baseUrl, cookieOptions = {}, websiteToken }) => {
     type: getBubbleView(chatwootSettings.type),
     launcherTitle: chatwootSettings.launcherTitle || '',
     showPopoutButton: chatwootSettings.showPopoutButton || false,
+    widgetStyle: getWidgetStyle(chatwootSettings.widgetStyle) || 'standard',
+    resetTriggered: false,
+    darkMode: getDarkMode(chatwootSettings.darkMode),
     showOnUnread: chatwootSettings.showOnUnread || false,
 
-    toggle() {
-      IFrameHelper.events.toggleBubble();
+    toggle(state) {
+      window.IFrameHelper.events.toggleBubble(state);
+    },
+
+    toggleBubbleVisibility(visibility) {
+      let widgetElm = document.querySelector('.woot--bubble-holder');
+      let widgetHolder = document.querySelector('.woot-widget-holder');
+      if (visibility === 'hide') {
+        addClass(widgetHolder, 'woot-widget--without-bubble');
+        addClass(widgetElm, 'woot-hidden');
+        window.$chatwoot.hideMessageBubble = true;
+      } else if (visibility === 'show') {
+        removeClass(widgetElm, 'woot-hidden');
+        removeClass(widgetHolder, 'woot-widget--without-bubble');
+        window.$chatwoot.hideMessageBubble = false;
+      }
+      window.IFrameHelper.sendMessage(SDK_SET_BUBBLE_VISIBILITY, {
+        hideMessageBubble: window.$chatwoot.hideMessageBubble,
+      });
+    },
+
+    popoutChatWindow() {
+      window.IFrameHelper.events.popoutChatWindow({
+        baseUrl: window.$chatwoot.baseUrl,
+        websiteToken: window.$chatwoot.websiteToken,
+        locale: window.$chatwoot.locale,
+      });
     },
 
     setUser(identifier, user) {
@@ -65,7 +85,7 @@ const runSDK = ({ baseUrl, cookieOptions = {}, websiteToken }) => {
 
       window.$chatwoot.identifier = identifier;
       window.$chatwoot.user = user;
-      IFrameHelper.sendMessage('set-user', { identifier, user });
+      window.IFrameHelper.sendMessage('set-user', { identifier, user });
       Cookies.set(userCookieName, hashToBeStored, {
         expires: 365,
         sameSite: 'Lax',
@@ -77,7 +97,9 @@ const runSDK = ({ baseUrl, cookieOptions = {}, websiteToken }) => {
       if (!customAttributes || !Object.keys(customAttributes).length) {
         throw new Error('Custom attributes should have atleast one key');
       } else {
-        IFrameHelper.sendMessage('set-custom-attributes', { customAttributes });
+        window.IFrameHelper.sendMessage('set-custom-attributes', {
+          customAttributes,
+        });
       }
     },
 
@@ -85,41 +107,43 @@ const runSDK = ({ baseUrl, cookieOptions = {}, websiteToken }) => {
       if (!customAttribute) {
         throw new Error('Custom attribute is required');
       } else {
-        IFrameHelper.sendMessage('delete-custom-attribute', {
+        window.IFrameHelper.sendMessage('delete-custom-attribute', {
           customAttribute,
         });
       }
     },
 
     setLabel(label = '') {
-      IFrameHelper.sendMessage('set-label', { label });
+      window.IFrameHelper.sendMessage('set-label', { label });
     },
 
     removeLabel(label = '') {
-      IFrameHelper.sendMessage('remove-label', { label });
+      window.IFrameHelper.sendMessage('remove-label', { label });
     },
 
     setLocale(localeToBeUsed = 'en') {
-      IFrameHelper.sendMessage('set-locale', { locale: localeToBeUsed });
+      window.IFrameHelper.sendMessage('set-locale', { locale: localeToBeUsed });
     },
 
     reset() {
       if (window.$chatwoot.isOpen) {
-        IFrameHelper.events.toggleBubble();
+        window.IFrameHelper.events.toggleBubble();
       }
 
       Cookies.remove('cw_conversation');
       Cookies.remove(getUserCookieName());
 
-      const iframe = IFrameHelper.getAppFrame();
-      iframe.src = IFrameHelper.getUrl({
+      const iframe = window.IFrameHelper.getAppFrame();
+      iframe.src = window.IFrameHelper.getUrl({
         baseUrl: window.$chatwoot.baseUrl,
         websiteToken: window.$chatwoot.websiteToken,
       });
+
+      window.$chatwoot.resetTriggered = true;
     },
   };
 
-  IFrameHelper.createFrame({
+  window.IFrameHelper.createFrame({
     baseUrl,
     websiteToken,
   });

@@ -1,20 +1,57 @@
 <template>
-  <div class="small-2 report-card" :class="{ 'active': selected }" v-on:click="onClick(index)">
-    <h3 class="heading">{{heading}}</h3>
-    <h4 class="metric">{{point}}</h4>
-    <p class="desc">{{desc}}</p>
+  <div
+    class="small-2 report-card"
+    :class="{ active: selected }"
+    @click="onClick(index)"
+  >
+    <h3 class="heading">
+      <span>{{ heading }}</span>
+      <fluent-icon
+        v-if="infoText"
+        v-tooltip="infoText"
+        size="14"
+        icon="info"
+        class="info-icon"
+      />
+    </h3>
+    <div class="metric-wrap">
+      <h4 class="metric">
+        {{ point }}
+      </h4>
+      <span v-if="trend !== 0" :class="trendClass">{{ trendValue }}</span>
+    </div>
+    <p class="desc">
+      {{ desc }}
+    </p>
   </div>
 </template>
 <script>
-
 export default {
   props: {
-    heading: String,
-    point: [Number, String],
-    index: Number,
-    desc: String,
+    heading: { type: String, default: '' },
+    infoText: { type: String, default: '' },
+    point: { type: [Number, String], default: '' },
+    trend: { type: Number, default: null },
+    index: { type: Number, default: null },
+    desc: { type: String, default: '' },
     selected: Boolean,
-    onClick: Function,
+    onClick: { type: Function, default: () => {} },
+  },
+  computed: {
+    trendClass() {
+      if (this.trend > 0) {
+        return 'metric-trend metric-up';
+      }
+
+      return 'metric-trend metric-down';
+    },
+    trendValue() {
+      if (this.trend > 0) {
+        return `+${this.trend}%`;
+      }
+
+      return `${this.trend}%`;
+    },
   },
 };
 </script>

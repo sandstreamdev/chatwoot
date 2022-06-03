@@ -14,3 +14,19 @@ export const formatDate = ({ date, todayText, yesterdayText }) => {
   if (isYesterday(dateValue)) return yesterdayText;
   return date;
 };
+
+export const formatDigitToString = val => {
+  return val > 9 ? `${val}` : `0${val}`;
+};
+
+export const isTimeAfter = (h1, m1, h2, m2) => {
+  if (h1 < h2) {
+    return false;
+  }
+
+  if (h1 === h2) {
+    return m1 >= m2;
+  }
+
+  return true;
+};
